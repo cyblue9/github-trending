@@ -64,10 +64,6 @@ class Github(object):
     :type PAGINATE_CMD: str (const)
     :param PAGINATE_CMD: The command to enable pagination.
 
-    :type paginate_comments: bool
-    :param paginate_comments: Determines whether to paginate
-            comments.
-
     :type text_utils: :class:`util.TextUtils`
     :param text_utils: An instance of `util.TextUtils`.
 
@@ -102,7 +98,6 @@ class Github(object):
         self.cli = None
         self.key_manager = None
         self.theme = 'vim'
-        self.paginate_comments = True
         self.github_trending_cli = GithubTrendingCli()
         self.text_utils = TextUtils()
         self.completer = Completer(fuzzy_match=False,
@@ -122,21 +117,12 @@ class Github(object):
         :return: KeyBindingManager with callables to set the toolbar options.
         """
 
-        def set_paginate_comments(paginate_comments):
-            """Setter for paginating comments mode.
-
-            :type paginate: bool
-            :param paginate: The paginate comments mode.
-            """
-            self.paginate_comments = paginate_comments
-
-        return KeyManager(
-            set_paginate_comments, lambda: self.paginate_comments)
+        return KeyManager()
 
     def _create_cli(self):
         """Create the prompt_toolkit's CommandLineInterface."""
         history = FileHistory(os.path.expanduser('~/.githubtrendinghistory'))
-        toolbar = Toolbar(lambda: self.paginate_comments)
+        toolbar = Toolbar()
         layout = create_default_layout(
             message=u'github> ',
             reserve_space_for_menu=8,
@@ -201,10 +187,7 @@ class Github(object):
         :param document: An instance of `prompt_toolkit.document.Document`.
         """
         try:
-            if self.paginate_comments:
-                text = document.text
-                text = self._add_comment_pagination(text)
-            subprocess.call(text, shell=True)
+            subprocess.call(document.text, shell=True)
         except Exception as e:
             click.secho(e, fg='red')
 
