@@ -41,8 +41,7 @@ logging.basicConfig(format='%(levelname)s - %(message)s', level=logging.INFO)
 LOGGER = logging.getLogger()
 
 # Repository information parsing functions
-
-class GitHubTrendingApi(object):
+class GithubTrendingApi(object):
     """Encapsulate the Github Trending API."""
 
     def __init__(self):
@@ -89,20 +88,20 @@ class GitHubTrendingApi(object):
             return
 
 
-    def stars_and_pull_requests(self, repo_info):
-        """Return total stars and pull requests"""
+    def stars_and_forks(self, repo_info):
+        """Return total stars and forks"""
         try:
             data = repo_info.select('a.muted-link')
-            # Handle no stars/pull requests data on repo
+            # Handle no stars/forks data on repo
             try:
                 stars = data[0].text.strip()
             except IndexError:
                 stars = None
             try:
-                pull_requests = data[1].text.strip()
+                forks = data[1].text.strip()
             except IndexError:
-                pull_requests = None
-            return stars, pull_requests
+                forks = None
+            return stars, forks
         except AttributeError:
             return
 
@@ -124,17 +123,17 @@ class GitHubTrendingApi(object):
         for content in tag:
             repositories = content.find_all('li')
             for index, list_item in enumerate(repositories, start=1):
-                username, repo_name = username_and_reponame(list_item)
-                stars, pull_requests = stars_and_pull_requests(list_item)
+                username, repo_name = self.username_and_reponame(list_item)
+                stars, forks = self.stars_and_forks(list_item)
                 trending[index] = {
                     'User': username,
                     'Repository': repo_name,
                     'URL': self.base_url + '/'.join((username, repo_name)),
-                    'Description': get_description(list_item),
-                    'Programming Language': get_programming_language(list_item),
+                    'Description': self.get_description(list_item),
+                    'Programming Language': self.get_programming_language(list_item),
                     'Total stars': stars,
-                    'Pull requests': pull_requests,
-                    'Stars trending': get_stars_trending(list_item)
+                    'Forks': forks,
+                    'Stars trending': self.get_stars_trending(list_item)
                 }
                 if index > limit:
                     return trending
@@ -187,10 +186,10 @@ class GitHubTrendingApi(object):
         for content in tag:
             repositories = content.find_all('li')
             for index, list_item in enumerate(repositories, start=1):
-                repo_name, url = get_developer_repo(list_item)
+                repo_name, url = self.get_developer_repo(list_item)
                 trending[index] = {
-                    'Developer': get_developer(list_item),
-                    'Profile': get_profile(list_item),
+                    'Developer': self.get_developer(list_item),
+                    'Profile': self.get_profile(list_item),
                     'Repository': repo_name,
                     'URL': url
                 }
@@ -250,7 +249,7 @@ class GitHubTrendingApi(object):
 
     def build_url(self, language=None, dev=False, monthly=False, weekly=False):
         """Build destination URL according to arguments"""
-        url = self.trending_ur
+        url = self.trending_url
         if dev:
             url += '/developers/'
         if language:
@@ -258,7 +257,7 @@ class GitHubTrendingApi(object):
                 url += 'c%23'  # Handle C# url encoding
             else:
                 url += language.lower()
-        url = add_duration_query(url=url, weekly=weekly, monthly=monthly)
+        url = self.add_duration_query(url=url, weekly=weekly, monthly=monthly)
         return url
 
 
@@ -275,14 +274,14 @@ class GitHubTrendingApi(object):
     def get_metadata(self, language, dev, weekly, monthly, limit):
         """Build URL, connect to page and create BeautifulSoup object, build and return result"""
         self.check_parameter(language, weekly, monthly)
-        url = build_url(language=language, dev=dev, monthly=monthly, weekly=weekly)
-        page = make_connection(url)
+        url = self.build_url(language=language, dev=dev, monthly=monthly, weekly=weekly)
+        page = self.make_connection(url)
         soup = BeautifulSoup(page.text, 'lxml')
         explore_content = soup.select('.explore-content')
         if dev:
-            result = parse_developers_info(explore_content, limit)
+            result = self.parse_developers_info(explore_content, limit)
         else:
-            result = parse_repositories_info(explore_content, limit)
+            result = self.parse_repositories_info(explore_content, limit)
         return result
 
 
@@ -309,7 +308,7 @@ class GitHubTrendingApi(object):
         if silent and not json and not xml:
             LOGGER.error('Passed silent flag without JSON or XML flags. exiting')
             exit(1)
-        result = get_metadata(
+        result = self.get_metadata(
             language=language, dev=dev, monthly=monthly, weekly=weekly)
         if not silent:
             print(JSON.dumps(result, indent=4))
