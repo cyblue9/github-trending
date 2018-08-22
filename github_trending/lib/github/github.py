@@ -22,23 +22,18 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-import logging
 import click
 from datetime import datetime
-import json as JSON  # Importing as caps to enable @click argument `json`
 import requests
 from bs4 import BeautifulSoup
 
 # Constants
-
 ACCEPTED_LANGUAGES = [
     'javascript', 'python', 'java', 'ruby', 'php', 'c++', 'css', 'c#', 'go',
     'c', 'typescript', 'shell', 'swift', 'scala', 'objective-c', 'html',
     'rust', 'coffeescript', 'haskell', 'groovy', 'lua', 'elixir',
     'perl', 'kotlin', 'clojure'
 ]
-logging.basicConfig(format='%(levelname)s - %(message)s', level=logging.INFO)
-LOGGER = logging.getLogger()
 
 # Repository information parsing functions
 class GithubTrendingApi(object):
@@ -135,7 +130,7 @@ class GithubTrendingApi(object):
                     'Forks': forks,
                     'Stars trending': self.get_stars_trending(list_item)
                 }
-                if index > limit:
+                if index >= limit:
                     return trending
         return trending
 
@@ -193,7 +188,7 @@ class GithubTrendingApi(object):
                     'Repository': repo_name,
                     'URL': url
                 }
-                if index > limit:
+                if index >= limit:
                     return trending
         return trending
 
@@ -208,9 +203,9 @@ class GithubTrendingApi(object):
         page = requests.get(url)
         if page.status_code != 200:
             if page.status_code == 429:
-                LOGGER.error('Too many requests')
+                click.secho('Error: Too many requests', fg='red')
             else:
-                LOGGER.error('Could not establish connection with GitHub')
+                click.secho('Error: Could not establish connection with GitHub', fg='red')
             exit(1)
         return page
 
@@ -222,29 +217,6 @@ class GithubTrendingApi(object):
         elif monthly:
             url += '?since=monthly'
         return url
-
-
-    def write_json(self, data):
-        with open(str(datetime.now()) + '.json', 'w') as file:
-            file.write(JSON.dumps(data, indent=4))
-
-
-    def write_xml(self, data):
-        """Write XML file """
-        xml = self.xml_declaration + self.root
-        for info in data.values():
-            xml += self.recode
-            for key, value in info.items():
-                try:
-                    xml += self.item.format(''.join(key.split()),
-                                       value.encode('ascii',
-                                                    'ignore').decode('utf8'))
-                except AttributeError:
-                    pass
-            xml += self.end_record
-        xml += seld.end_root
-        with open(str(datetime.now()) + '.xml', 'w') as file:
-            file.write(xml)
 
 
     def build_url(self, language=None, dev=False, monthly=False, weekly=False):
@@ -261,19 +233,8 @@ class GithubTrendingApi(object):
         return url
 
 
-    def check_parameter(self, language, weekly, monthly):
-        if language and language.lower() not in ACCEPTED_LANGUAGES:
-            LOGGER.error(
-                'Specified programming language not in supported languages')
-            exit(1)
-        if weekly and monthly:
-            LOGGER.error('Please specify weekly OR monthly')
-            exit(1)
-
-
     def get_metadata(self, language, dev, weekly, monthly, limit):
         """Build URL, connect to page and create BeautifulSoup object, build and return result"""
-        self.check_parameter(language, weekly, monthly)
         url = self.build_url(language=language, dev=dev, monthly=monthly, weekly=weekly)
         page = self.make_connection(url)
         soup = BeautifulSoup(page.text, 'lxml')
@@ -283,37 +244,3 @@ class GithubTrendingApi(object):
         else:
             result = self.parse_repositories_info(explore_content, limit)
         return result
-
-
-    @click.command()
-    @click.option('--language', '-l', help='Display repositories for this programming language')
-    @click.option('--dev', '-d', is_flag=True, help='Get trending developers instead of repositories')
-    @click.option('--weekly', '-w', is_flag=True, help='Display trending repositories from the past week')
-    @click.option('--monthly', '-m', is_flag=True, help='Display trending repositories from the past month')
-    @click.option('--json', '-j', is_flag=True, help='Save data to a JSON file')
-    @click.option('--xml', '-x', is_flag=True, help='Save data to an XML file')
-    @click.option('--silent', '-s', is_flag=True, help='Do not write to sdout')
-    def main(language, dev, weekly, monthly, json, xml, silent):
-        """
-        Parse arguments using click, check for argument validation and call get_metadata function.
-        Either print or write results to JSON/XML
-        """
-        if language and language.lower() not in ACCEPTED_LANGUAGES:
-            LOGGER.error(
-                'Specified programming language not in supported languages')
-            exit(1)
-        if weekly and monthly:
-            LOGGER.error('Please specify weekly OR monthly')
-            exit(1)
-        if silent and not json and not xml:
-            LOGGER.error('Passed silent flag without JSON or XML flags. exiting')
-            exit(1)
-        result = self.get_metadata(
-            language=language, dev=dev, monthly=monthly, weekly=weekly)
-        if not silent:
-            print(JSON.dumps(result, indent=4))
-        if json:
-            write_json(result)
-        if xml:
-            write_xml(result)
-
