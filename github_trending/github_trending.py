@@ -21,6 +21,7 @@ import re
 import sys
 import webbrowser
 import unicodedata
+import requests
 
 import click
 #from .compat import HTMLParser
@@ -28,9 +29,11 @@ import click
 
 ##rom .config import Config
 from .lib.github.github import GithubTrendingApi
+from .lib.mdv import markdownviewer as mdv
 #from .lib.pretty_date_time import pretty_date_time
 #from .onions import onions
 #from .web_viewer import WebViewer
+#from .completions import SUBCOMMANDS, ARGS_OPTS_LOOKUP
 
 
 class GithubTrending(object):
@@ -106,30 +109,43 @@ class GithubTrending(object):
             for word in word_list:
                 if _is_description_english(word):
                     if column_len + len(word) > max_column:
-                        formatted_description += '\n    '
+                        formatted_description += '\n      '
                         column_len = 0
                 for c in word:
                     column_len += _get_east_asian_width_count(c)
                     if column_len > max_column:
-                        formatted_description += '\n    '
+                        formatted_description += '\n      '
                         column_len -= max_column
                     formatted_description += c
                 formatted_description += ' '
                 column_len += 1
             return formatted_description
-        formatted_repository  = click.style('{0}.'.format(str(index)), fg='magenta') + ' ' * (3-len(str(index)))
+
+        formatted_repository  = click.style('  {0}.'.format(str(index)), fg='magenta') + ' ' * (3-len(str(index)))
         formatted_repository += click.style(repository['User'] + '/', fg='cyan')
         formatted_repository += click.style(repository['Repository'], fg='cyan', bold=True)
-        formatted_repository += '\n    '
-        formatted_repository += _format_description(repository['Description'])
-        formatted_repository += '\n    '
+        formatted_repository += '\n      '
+        try:
+            formatted_repository += _format_description(repository['Description'])
+        except:
+            # Description is none
+            pass
+        formatted_repository += '\n      '
         try:
             formatted_repository += click.style(u'\U0001F4D6 ' + repository['Programming Language'] + '  ', fg='red')
         except:
+            # Programming language is none
             formatted_repository += click.style('', fg='red')
-        finally:
+        try:
             formatted_repository += click.style(u'\U00002B50 ' + repository['Total stars'] + '  ', fg='yellow')
+        except:
+            # Total stars is none
+            formatted_repository += click.style('', fg='yellow')
+        try:
             formatted_repository += click.style(u'\U0001F374 ' + repository['Forks'], fg='green')
+        except:
+            formatted_repository += click.style('', fg='green')
+        finally:
             formatted_repository += ' ' * _get_blank_num(formatted_repository)
             formatted_repository += click.style(u'\U00002B50 ' + repository['Stars trending'], fg='yellow')
             formatted_repository += '\n'
@@ -157,33 +173,6 @@ class GithubTrending(object):
     def print_developer_not_found(self):
         pass
 
-    def print_items(self, message, item_ids):
-        """Print the items.
-
-        :type message: str
-        :param message: A message to print out to the user before outputting
-                 the results.
-
-        :type item_ids: iterable
-        :param item_ids: A collection of itmes to print.
-                Can be a list or dictionary.
-        """
-        self.config.item_ids = []
-        index = 1
-        for item_id in item_ids:
-            try:
-                item = self.github_trending_api.get_item(item_id)
-                if item.title:
-                    formatted_item = self.format_item(item, index)
-                    self.config.item_ids.append(item.item_id)
-                    click.echo(formatted_item)
-                    index += 1
-            except:
-                self.print_item_not_found(item_id)
-        self.config.save_cache()
-        if self.config.show_tip:
-            pass
-
     def print_repository(self, repositories):
         # TODO: save_cache
         for index, repository in repositories.items():
@@ -202,7 +191,14 @@ class GithubTrending(object):
             except:
                 self.print_developer_not_found()
 
-    def show(self, language, dev, weekly, monthly, limit):
+    def tip_view(self):
+         """Create the tip about the view command."""
+         tip = click.style('  Tip: View the README for repository with the following command:\n', fg='white')
+         tip += click.style('    gt view [user/repository] ', fg='magenta')
+         tip += click.style('optional: [-b/--browser] [--help]\n')
+         return tip
+
+    def show(self, language, dev, weekly, monthly, browser, limit):
         """Display Show Github Trendings.
 
         :type dev: bool
@@ -211,13 +207,46 @@ class GithubTrending(object):
         :type limit: int
         :param limit: the number of repositories to show, optional. defaults to 10.
         """
-        result = self.github_trending_api.get_metadata(language, dev, weekly, monthly, limit)
-        if dev:
-            self.print_developer(result)
+        def _create_url(language, dev, weekly, monthly):
+            url = 'https://github.com/trending'
+            if dev:
+                url += '/developers'
+            if language:
+                url += '/' + language
+            if weekly:
+                url += '?since=weekly'
+            elif monthly:
+                url += '?since=monthly'
+            return url
+
+        if browser:
+            url = _create_url(language, dev, weekly, monthly)
+            click.secho('\nOpening ' + url + ' ...\n', fg='white')
+            webbrowser.open(url)
         else:
-            self.print_repository(result)
-"""
-        self.print_items(
-            message=self.headlines_message('Show GT'),
-            item_ids=self.github_trending_api.show_stories(limit))
-"""
+            result = self.github_trending_api.get_metadata(language, dev, weekly, monthly, limit)
+            if dev:
+                self.print_developer(result)
+            else:
+                self.print_repository(result)
+                click.secho(self.tip_view())
+
+    def view(self, repository, browser):
+        """Display View repository README."""
+        if browser:
+            url = 'https://github.com/' + repository
+            click.secho('\nOpening ' + url + ' ...\n', fg='white')
+            webbrowser.open(url)
+        else:
+            for md in ['README.md', 'README.rst', 'README.txt', 'README']:
+                url = 'https://raw.githubusercontent.com/' + repository + '/master/' + md
+                res = requests.get(url, stream=True)
+                if res.status_code == 200:
+                    click.secho('\nOpening ' + url + ' ...\n', fg='white')
+                    header = click.style('Viewing ' + url + '\n', fg='white')
+                    content = mdv.main(md=res.text, L=True, l=True)
+                    click.echo_via_pager(header + content)
+                    return
+            click.secho('Error: ' + repository + ' is not found.', fg='red')
+
+
