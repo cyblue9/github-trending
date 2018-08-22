@@ -19,6 +19,7 @@ from __future__ import division
 import click
 
 from .github_trending import GithubTrending
+from .lib.github.github import ACCEPTED_LANGUAGES
 
 
 pass_github_trending = click.make_pass_decorator(GithubTrending)
@@ -42,9 +43,14 @@ class GithubTrendingCli(object):
         ctx.obj = GithubTrending()
 
     @cli.command()
-    @click.argument('limit', required=False, default=10)
+    @click.option('--language', '-la', help='View specific language trending')
+    @click.option('--dev', '-d', is_flag=True, help='View developers trending')
+    @click.option('--weekly', '-w', is_flag=True, help='View 1 week trending')
+    @click.option('--monthly', '-m', is_flag=True, help='View 1 month trending')
+    @click.option('--browser', '-b', is_flag=True, help='View in a browser instead of the terminal')
+    @click.option('--limit', '-li', default=25, help='Limits the number of items displayed')
     @pass_github_trending
-    def show(github_trending, limit):
+    def show(github_trending, language, dev, weekly, monthly, browser, limit):
         """Display Show Github trendings.
 
         Example(s):
@@ -58,4 +64,20 @@ class GithubTrendingCli(object):
         :param limit: specifies the number of items to show.
             Optional, defaults to 10.
         """
-        github_trending.show(limit)
+        if language and language.lower() not in ACCEPTED_LANGUAGES:
+            click.secho('Error: Specified programming language not in supported languages')
+            return
+        if weekly and monthly:
+            click.secho('Error: Please specify weekly OR monthly')
+            return
+
+        github_trending.show(language, dev, weekly, monthly, browser, limit)
+
+    @cli.command(help='View README of repository(ex:blue-9/github-trending)')
+    @click.argument('repository')
+    @click.option('--browser', '-b', is_flag=True, help='View in a browser instead of the terminal')
+    @pass_github_trending
+    def view(github_treding, repository, browser):
+        """Display View repository README"""
+        
+        github_treding.view(repository, browser)

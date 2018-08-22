@@ -23,7 +23,7 @@ from .completions import SUBCOMMANDS, ARGS_OPTS_LOOKUP
 
 class Completer(Completer):
     """Completer for github-trending.
-    
+
     :type text_utils: :class:`utils.TextUtils`
     :param text_utils: An instance of `utils.TextUtils`.
 
@@ -71,7 +71,7 @@ class Completer(Completer):
             return True
         else:
             return False
-        
+
     def completing_arg(self, words, word_before_cursor):
         """Determine if we are currently completing an arg.
 
@@ -145,15 +145,18 @@ class Completer(Completer):
         :rtype: list
         :return: A list of completions.
         """
-        if 'hn' not in words:
+        if 'gt' not in words:
             return []
         input_subcommand = words[1]
         if input_subcommand in ARGS_OPTS_LOOKUP:
-            return [ARGS_OPTS_LOOKUP[input_subcommand]['args']]
+            if not ARGS_OPTS_LOOKUP[input_subcommand]['args']:
+                return ARGS_OPTS_LOOKUP[input_subcommand]['opts']
+            else:
+                return ARGS_OPTS_LOOKUP[input_subcommand]['args']
         if input_subcommand in SUBCOMMANDS:
-            return ['10']
+            return []
         return []
-        
+
     def get_completions(self, document, _):
         """Get completions for the current scope.
 
@@ -172,9 +175,9 @@ class Completer(Completer):
         if len(words) == 0:
             return commands
         if self.completing_command(words, word_before_cursor):
-            commands = ['hn']
+            commands = ['gt']
         else:
-            if 'hn' not in words:
+            if 'gt' not in words:
                 return commands
             if self.completing_subcommand(words, word_before_cursor):
                 commands = list(SUBCOMMANDS.keys())
