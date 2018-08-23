@@ -17,6 +17,7 @@ from __future__ import unicode_literals
 from __future__ import print_function
 
 from prompt_toolkit.completion import Completer
+from .config import Config
 
 from .completions import SUBCOMMANDS, ARGS_OPTS_LOOKUP
 
@@ -34,6 +35,14 @@ class Completer(Completer):
     def __init__(self, fuzzy_match, text_utils):
         self.fuzzy_match = fuzzy_match
         self.text_utils = text_utils
+        self.config = Config()
+
+    def update_view_args(self):
+        """Update view subcommand args from ~/.githubtrendingconfig"""
+        ARGS_OPTS_LOOKUP['view']['args'] = []
+        self.config.repositories = []
+        self.config.load_config([self.config.load_config_repositories])
+        ARGS_OPTS_LOOKUP['view']['args'].extend(self.config.repositories)
 
     def completing_command(self, words, word_before_cursor):
         """Determine if we are currently completing the gh command.

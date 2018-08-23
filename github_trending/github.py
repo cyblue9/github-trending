@@ -199,3 +199,4 @@ class Github(object):
             document = self.cli.run(reset_current_buffer=True)
             self.handle_exit(document)
             self.run_command(document)
+            self.completer.update_view_args()

@@ -27,7 +27,7 @@ import click
 #from .compat import HTMLParser
 #from .compat import urlparse
 
-##rom .config import Config
+from .config import Config
 from .lib.github.github import GithubTrendingApi
 from .lib.mdv import markdownviewer as mdv
 #from .lib.pretty_date_time import pretty_date_time
@@ -43,7 +43,7 @@ class GithubTrending(object):
 
     def __init__(self):
         self.github_trending_api = GithubTrendingApi()
-        # self.config = Config()
+        self.config = Config()
         # self.web_viewer = WebViewer()
 
     def headlines_message(self, message):
@@ -166,6 +166,12 @@ class GithubTrending(object):
         formatted_developer += '\n'
         return formatted_developer
 
+    def tip_view(self):
+         """Create the tip about the view command."""
+         tip = click.style('  Tip: View the README for repository with the following command:\n', fg='white')
+         tip += click.style('    gt view [user/repository] ', fg='magenta')
+         tip += click.style('optional: [-b/--browser] [--help]\n')
+         return tip
 
     def print_repository_not_found(self):
         pass
@@ -174,13 +180,18 @@ class GithubTrending(object):
         pass
 
     def print_repository(self, repositories):
-        # TODO: save_cache
+        self.config.repositories = []
         for index, repository in repositories.items():
             try:
                 formatted_repository = self.format_repository(index, repository)
+                user_repository = repository['User'] + '/' + repository['Repository']
+                self.config.repositories.append(user_repository)
                 click.echo(formatted_repository)
             except:
                 self.print_repository_not_found()
+        self.config.save_cache()
+        if self.config.show_tip:
+            click.secho(self.tip_view())
 
     def print_developer(self, developers):
         # TODO: save_cache
@@ -188,15 +199,8 @@ class GithubTrending(object):
             try:
                 formatted_developer = self.format_developer(index, developer)
                 click.echo(formatted_developer)
-            except:
-                self.print_developer_not_found()
+            except:                self.print_developer_not_found()
 
-    def tip_view(self):
-         """Create the tip about the view command."""
-         tip = click.style('  Tip: View the README for repository with the following command:\n', fg='white')
-         tip += click.style('    gt view [user/repository] ', fg='magenta')
-         tip += click.style('optional: [-b/--browser] [--help]\n')
-         return tip
 
     def show(self, language, dev, weekly, monthly, browser, limit):
         """Display Show Github Trendings.
@@ -229,7 +233,6 @@ class GithubTrending(object):
                 self.print_developer(result)
             else:
                 self.print_repository(result)
-                click.secho(self.tip_view())
 
     def view(self, repository, browser):
         """Display View repository README."""
