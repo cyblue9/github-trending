@@ -57,14 +57,14 @@ class GithubTrendingApi(object):
             try:
                 username = data[1]
             except IndexError:
-                username = None
+                username = ''
             try:
                 repo_name = data[2]
             except IndexError:
-                repo_name = None
+                repo_name = ''
             return username, repo_name
         except AttributeError:
-            return
+            return '', ''
 
 
     def get_description(self, repo_info):
@@ -72,7 +72,7 @@ class GithubTrendingApi(object):
         try:
             return repo_info.find('p').text.strip()
         except AttributeError:
-            return
+            return ''
 
 
     def get_programming_language(self, repo_info):
@@ -80,7 +80,7 @@ class GithubTrendingApi(object):
         try:
             return repo_info.find('span', {'itemprop': 'programmingLanguage'}).text.strip()
         except AttributeError:
-            return
+            return ''
 
 
     def stars_and_forks(self, repo_info):
@@ -91,14 +91,14 @@ class GithubTrendingApi(object):
             try:
                 stars = data[0].text.strip()
             except IndexError:
-                stars = None
+                stars = ''
             try:
                 forks = data[1].text.strip()
             except IndexError:
-                forks = None
+                forks = ''
             return stars, forks
         except AttributeError:
-            return
+            return '', ''
 
 
     def get_stars_trending(self, repo_info):
@@ -106,7 +106,7 @@ class GithubTrendingApi(object):
         try:
             return repo_info.find('span', {'class': 'float-sm-right'}).text.strip()
         except AttributeError:
-            return
+            return ''
 
 
     def parse_repositories_info(self, tag, limit):
@@ -146,7 +146,7 @@ class GithubTrendingApi(object):
             developer = ' '.join(repo_info.find('h2').find('a').text.split())
             return developer
         except AttributeError:
-            return
+            return ''
 
 
     def get_profile(self, repo_info):
@@ -155,7 +155,7 @@ class GithubTrendingApi(object):
             profile = self.base_url + repo_info.find('h2').find('a').get('href')
             return profile
         except AttributeError:
-            return
+            return ''
 
 
     def get_developer_repo(self, item):
@@ -169,7 +169,7 @@ class GithubTrendingApi(object):
             repo_name = a.find('span').text.strip()
             return repo_name, url
         except AttributeError:
-            return
+            return '', ''
 
     def get_developer_repo_description(self, item):
         """Get trending develoer repository description"""
@@ -177,7 +177,7 @@ class GithubTrendingApi(object):
             description = item.find(class_='repo-snipit-description css-truncate-target').text.strip()
             return description
         except AttributeError:
-            return
+            return ''
 
     def parse_developers_info(self, tag, limit):
         """
