@@ -28,6 +28,14 @@ from .completions import META_LOOKUP
 class TextUtils(object):
     """Utilities for parsing and matching text."""
 
+    def update_meta_lookup(self, view_args):
+        """Update META_LOOKUP to view_args.
+
+        type: view_args: dict
+        :param view_args: The view subcommand args like "user/repository".
+        """
+        META_LOOKUP.update(view_args)
+
     def find_matches(self, word, collection, fuzzy):
         """Find all matches in collection for word.
 

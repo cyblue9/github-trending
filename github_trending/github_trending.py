@@ -65,6 +65,15 @@ class GithubTrending(object):
         """
         click.secho('Item with id {0} not found.'.format(item_id), fg='red')
 
+    def get_east_asian_width_count(self, text):
+        count = 0
+        for c in text:
+            if unicodedata.east_asian_width(c) in 'FWA':
+                count += 2
+            else:
+                count += 1
+        return count
+
     def format_repository(self, index, repository):
 
         def _get_blank_num(formatted_repository):
@@ -74,15 +83,6 @@ class GithubTrending(object):
             blank_num = max_column - len(formatted_repository[formatted_repository.rfind('\n'):])
             return blank_num
 
-        def _get_east_asian_width_count(text):
-            count = 0
-            for c in text:
-                if unicodedata.east_asian_width(c) in 'FWA':
-                    count += 2
-                else:
-                    count += 1
-            return count
-
         def _is_description_english(s):
             for c in s:
                 if unicodedata.east_asian_width(c) in 'FWA':
@@ -90,7 +90,7 @@ class GithubTrending(object):
             return True
 
         def _is_word_one_language(text):
-            text_len = _get_east_asian_width_count(text)
+            text_len = self.get_east_asian_width_count(text)
             if text_len == len(text) or text_len == len(text) * 2:
                 return True
             else:
@@ -98,7 +98,7 @@ class GithubTrending(object):
 
         def _format_description(description):
             max_column = 78
-            description_char_num = _get_east_asian_width_count(description)
+            description_char_num = self.get_east_asian_width_count(description)
             if description_char_num <= max_column:
                 return description
 
@@ -112,7 +112,7 @@ class GithubTrending(object):
                         formatted_description += '\n      '
                         column_len = 0
                 for c in word:
-                    column_len += _get_east_asian_width_count(c)
+                    column_len += self.get_east_asian_width_count(c)
                     if column_len > max_column:
                         formatted_description += '\n      '
                         column_len -= max_column
@@ -162,7 +162,18 @@ class GithubTrending(object):
         formatted_developer += click.style(developer_name[:i], fg='cyan', bold=True)
         formatted_developer += click.style(developer_name[i:], fg='green', bold=True)
         formatted_developer += '\n    '
-        formatted_developer += click.style(u'\U0001F516  ' + developer['Repository'])
+        formatted_developer += click.style(u'\U0001F516  ' + developer['Repository'] + ' ', fg='yellow')
+        try:
+            col = 95 - self.get_east_asian_width_count(developer['Repository'])
+            for c in developer['Description']:
+                col -= self.get_east_asian_width_count(c)
+                if col < 0:
+                    formatted_developer += '...'
+                    break
+                else:
+                    formatted_developer += c
+        except:
+            pass
         formatted_developer += '\n'
         return formatted_developer
 
@@ -180,13 +191,17 @@ class GithubTrending(object):
         pass
 
     def print_repository(self, repositories):
-        self.config.repositories = []
+        self.config.repositories = {}
         for index, repository in repositories.items():
             try:
                 formatted_repository = self.format_repository(index, repository)
-                user_repository = repository['User'] + '/' + repository['Repository']
-                self.config.repositories.append(user_repository)
                 click.echo(formatted_repository)
+                user_repository = repository['User'] + '/' + repository['Repository']
+                try:
+                    description = repository['Description']
+                except:
+                    description = ''
+                self.config.repositories[user_repository] = description
             except:
                 self.print_repository_not_found()
         self.config.save_cache()
@@ -194,12 +209,21 @@ class GithubTrending(object):
             click.secho(self.tip_view())
 
     def print_developer(self, developers):
-        # TODO: save_cache
+        self.config.repositories = {}
         for index, developer in developers.items():
             try:
                 formatted_developer = self.format_developer(index, developer)
                 click.echo(formatted_developer)
-            except:                self.print_developer_not_found()
+                developer_repository = developer['Developer'].split(' (')[0]
+                developer_repository += '/' + developer['Repository']
+                try:
+                    description = developer['Description']
+                except:
+                    description = ''
+                self.config.repositories[developer_repository] = description
+            except:
+                self.print_developer_not_found()
+        self.config.save_cache()
 
 
     def show(self, language, dev, weekly, monthly, browser, limit):

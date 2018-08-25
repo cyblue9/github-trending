@@ -171,6 +171,13 @@ class GithubTrendingApi(object):
         except AttributeError:
             return
 
+    def get_developer_repo_description(self, item):
+        """Get trending develoer repository description"""
+        try:
+            description = item.find(class_='repo-snipit-description css-truncate-target').text.strip()
+            return description
+        except AttributeError:
+            return
 
     def parse_developers_info(self, tag, limit):
         """
@@ -182,11 +189,13 @@ class GithubTrendingApi(object):
             repositories = content.find_all('li')
             for index, list_item in enumerate(repositories, start=1):
                 repo_name, url = self.get_developer_repo(list_item)
+                description = self.get_developer_repo_description(list_item)
                 trending[index] = {
                     'Developer': self.get_developer(list_item),
                     'Profile': self.get_profile(list_item),
                     'Repository': repo_name,
-                    'URL': url
+                    'URL': url,
+                    'Description': description
                 }
                 if index >= limit:
                     return trending

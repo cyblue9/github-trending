@@ -17,6 +17,7 @@ from __future__ import print_function
 from __future__ import division
 
 import os
+import ast
 
 import click
 from .compat import configparser
@@ -28,13 +29,11 @@ class Config(object):
     CONFIG = '.githubtrendingconfig'
     CONFIG_SECTION = 'github-trending'
     CONFIG_REPOSITORIES = 'repositories'
-    CONFIG_CACHE = 'repository_cache'
     CONFIG_SHOW_TIP = 'show_tip'
     MAX_ITEM_CACHE_SIZE = 20000
 
     def __init__(self):
-        self.repositories = []
-        self.repository_cache = []
+        self.repositories = {}
         self.show_tip = True
         self._init_colors()
         self.load_config([
@@ -49,7 +48,7 @@ class Config(object):
 
     def clear_repositories(self):
         """Clear the repository cache."""
-        self.repositories = []
+        self.repositories = {}
         self.save_cache()
 
     def get_config_path(self, config_file_name):
@@ -87,6 +86,7 @@ class Config(object):
 
     def load_config_colors(self, parser):
         """Load the color config from ~/.githubtrending.
+
         :type parser: :class:`ConfigParser.RawConfigParser`
         :param parser: An instance of `ConfigParser.RawConfigParser`.
         """
@@ -94,6 +94,7 @@ class Config(object):
 
     def load_config_repositories(self, parser):
         """Load the repository cache from ~/.githubtrendingconfig.
+
         :type parser: :class:`ConfigParser.RawConfigParser`
         :param parser: An instance of `ConfigParser.RawConfigParser`.
         """
@@ -102,6 +103,7 @@ class Config(object):
 
     def load_config_show_tip(self, parser):
         """Load the show tip config from ~/.githubtrendingconfig.
+
         :type parser: :class:`ConfigParser.RawConfigParser`
         :param parser: An instace of `ConfigParser.RawConfigParser`.
         """
@@ -110,10 +112,13 @@ class Config(object):
 
     def load_color(self, parser, color_config, default):
         """Load the specified color form ~/.githubtrendingconfig.
+
         :type parser: :class:`ConfigParser.RawConfigParser`
         :param parser: An instance of `ConfigParser.RawConfigParser`.
+
         :type color_config: str
         :param color_config: The color config label to load.
+
         :type default: str
         :param default: The default color if no color config exists.
         """
@@ -130,6 +135,7 @@ class Config(object):
 
     def load_colors(self, parser):
         """Load all colors from ~/.githubtrendingconfig.
+
         :type parser: :class:`ConfigParser.RawConfigParser`
         :param parser: An instance of `ConfigParser.RawConfigParser`.
         """
@@ -137,20 +143,20 @@ class Config(object):
 
     def load_section_list(self, parser, section):
         """Load the given section containing a list from ~/.githubtrendingconfig.
+
         :type parser: :class:`ConfigParser.RawConfigParser`
         :param parser: An instance of `ConfigParser.RawConfigParser`.
+
         :type section: str
         :param section: The sectino to load.
-        :rtype: list
+
+        :rtype: dict
         :return: Collection of repositries stored in config.
         :raises: 'Exception` if an error occurred reading from the parser.
         """
         repositories = parser.get(self.CONFIG_SECTION, section)
         repositories = repositories.strip()
-        excludes = ['[', ']', "'"]
-        for exclude in excludes:
-            repositories = repositories.replace(exclude, '')
-        return repositories.split(', ')
+        return ast.literal_eval(repositories)
 
     def save_cache(self):
         """Save the current set of repositorys and cache to ~/.githubtrending."""

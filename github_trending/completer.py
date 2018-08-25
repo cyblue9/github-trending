@@ -40,9 +40,11 @@ class Completer(Completer):
     def update_view_args(self):
         """Update view subcommand args from ~/.githubtrendingconfig"""
         ARGS_OPTS_LOOKUP['view']['args'] = []
-        self.config.repositories = []
+        self.config.repositories = {}
         self.config.load_config([self.config.load_config_repositories])
-        ARGS_OPTS_LOOKUP['view']['args'].extend(self.config.repositories)
+        for user_repository in self.config.repositories.keys():
+            ARGS_OPTS_LOOKUP['view']['args'].append(user_repository)
+        self.text_utils.update_meta_lookup(self.config.repositories)
 
     def completing_command(self, words, word_before_cursor):
         """Determine if we are currently completing the gh command.
