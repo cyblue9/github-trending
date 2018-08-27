@@ -39,7 +39,7 @@ from .lib.mdv import markdownviewer as mdv
 class GithubTrending(object):
     """Encapsulate Github Trending."""
 
-    MAX_LIST = 10000;
+    MAX_COLUMN = 100
 
     def __init__(self):
         self.github_trending_api = GithubTrendingApi()
@@ -76,11 +76,18 @@ class GithubTrending(object):
 
     def format_repository(self, index, repository):
 
-        def _get_blank_num(formatted_repository):
+        def _get_blank_num(repository):
             """ Gets the blank num of between fork to today stars.
             """
-            max_column = 100
-            blank_num = max_column - len(formatted_repository[formatted_repository.rfind('\n'):])
+            blank_num = self.MAX_COLUMN
+            blank_num -= 6 # header blanks
+            if repository['Programming Language']:
+                blank_num -= len(repository['Programming Language']) + 4 # a 2 byte unicode and 2 blanks
+            if repository['Total stars']:
+                blank_num -= len(repository['Total stars']) + 4 # a 2 byte unicode and 2 blanks
+            if repository['Forks']:
+                blank_num -= len(repository['Forks']) + 3 # a 2 byte unicode and a blank
+            blank_num -= len(repository['Stars trending']) + 3 # a 2 byte unicode and 2 blanks
             return blank_num
 
         def _is_description_english(s):
@@ -97,20 +104,15 @@ class GithubTrending(object):
                 return False
 
         def _format_description(description):
-            max_column = 78
-            description_char_num = self.get_east_asian_width_count(description)
-            if description_char_num <= max_column:
-                return description
-
             formatted_description = ''
-            column_len = 0
+            max_column = 78 # for description
+            column_len = 6 # header blanks
 
-            word_list = description.split(' ')
-            for word in word_list:
+            for word in description.split(' '):
                 if _is_description_english(word):
                     if column_len + len(word) > max_column:
                         formatted_description += '\n      '
-                        column_len = 0
+                        column_len = 6
                 for c in word:
                     column_len += self.get_east_asian_width_count(c)
                     if column_len > max_column:
@@ -121,60 +123,70 @@ class GithubTrending(object):
                 column_len += 1
             return formatted_description
 
-        formatted_repository  = click.style('  {0}.'.format(str(index)), fg='magenta') + ' ' * (3-len(str(index)))
+        def _format_programming_language(programming_language):
+            if programming_language:
+                return u'\U0001F4D6 ' + programming_language + '  '
+            else:
+                return ''
+
+        def _format_total_stars(total_stars):
+            if total_stars:
+                return u'\U00002B50 ' + total_stars + '  '
+            else:
+                return ''
+
+        def _format_forks(forks):
+            if forks:
+                return u'\U0001F374 ' + forks
+            else:
+                return ''
+
+        formatted_repository  = click.style('  {0}.'.format(str(index)), fg='magenta')
+        formatted_repository += ' ' * (3-len(str(index)))
         formatted_repository += click.style(repository['User'] + '/', fg='cyan')
-        formatted_repository += click.style(repository['Repository'], fg='cyan', bold=True)
-        formatted_repository += '\n      '
-        try:
-            formatted_repository += _format_description(repository['Description'])
-        except:
-            # Description is none
-            pass
-        formatted_repository += '\n      '
-        try:
-            formatted_repository += click.style(u'\U0001F4D6 ' + repository['Programming Language'] + '  ', fg='red')
-        except:
-            # Programming language is none
-            formatted_repository += click.style('', fg='red')
-        try:
-            formatted_repository += click.style(u'\U00002B50 ' + repository['Total stars'] + '  ', fg='yellow')
-        except:
-            # Total stars is none
-            formatted_repository += click.style('', fg='yellow')
-        try:
-            formatted_repository += click.style(u'\U0001F374 ' + repository['Forks'], fg='green')
-        except:
-            formatted_repository += click.style('', fg='green')
-        finally:
-            formatted_repository += ' ' * _get_blank_num(formatted_repository)
-            formatted_repository += click.style(u'\U00002B50 ' + repository['Stars trending'], fg='yellow')
-            formatted_repository += '\n'
-            return formatted_repository
+        formatted_repository += click.style(repository['Repository'] + '\n      ', fg='cyan', bold=True)
+        formatted_repository += _format_description(repository['Description']) + '\n      '
+        programming_language  = _format_programming_language(repository['Programming Language'])
+        formatted_repository += click.style(programming_language, fg='red')
+        total_stars           = _format_total_stars(repository['Total stars'])
+        formatted_repository += click.style(total_stars, fg='yellow')
+        forks                 = _format_forks(repository['Forks'])
+        formatted_repository += click.style(forks, fg='green')
+        formatted_repository += ' ' * _get_blank_num(repository)
+        formatted_repository += click.style(u'\U00002B50 ' + repository['Stars trending'] + '\n', fg='yellow')
+        return formatted_repository
 
     def format_developer(self, index, developer):
-        formatted_developer  = ''
-        formatted_developer  = click.style('{0}.'.format(str(index)), fg='magenta') + ' ' * (3-len(str(index)))
-        developer_name = developer['Developer']
-        try:
-            i = developer_name.index('(')
-        except:
-            i = len(developer_name)
-        formatted_developer += click.style(developer_name[:i], fg='cyan', bold=True)
-        formatted_developer += click.style(developer_name[i:], fg='green', bold=True)
-        formatted_developer += '\n    '
-        formatted_developer += click.style(u'\U0001F516  ' + developer['Repository'] + ' ', fg='yellow')
-        try:
-            col = 95 - self.get_east_asian_width_count(developer['Repository'])
-            for c in developer['Description']:
-                col -= self.get_east_asian_width_count(c)
-                if col < 0:
-                    formatted_developer += '...'
+
+        def _get_owner_and_organization(developer_name):
+            developer_name = developer_name.split(' (')
+            owner = developer_name[0].strip()
+            try:
+                organization = '(' + developer_name[1].strip()
+            except IndexError:
+                organization = ''
+            return owner, organization
+
+        def _format_description(repository, description):
+            formatted_description = ''
+            col = self.MAX_COLUMN - self.get_east_asian_width_count(repository) - 6 - 4
+            for c in description:
+                if col < 4:
+                    formatted_description += '.' * col
                     break
                 else:
-                    formatted_developer += c
-        except:
-            pass
-        formatted_developer += '\n'
+                    formatted_description += c
+                col -= self.get_east_asian_width_count(c)
+            return formatted_description
+
+        formatted_developer  = click.style('  {0}.'.format(str(index)), fg='magenta')
+        formatted_developer += ' ' * (3-len(str(index)))
+        owner, organization  = _get_owner_and_organization(developer['Developer'])
+        formatted_developer += click.style(owner + ' ', fg='cyan', bold=True)
+        formatted_developer += click.style(organization + '\n      ', fg='green', bold=True)
+        formatted_developer += click.style(u'\U0001F516  ' + developer['Repository'] + ' ', fg='yellow')
+        description          = _format_description(developer['Repository'], developer['Description'])
+        formatted_developer += click.style(description + '\n', fg='white')
         return formatted_developer
 
     def tip_view(self):
@@ -197,11 +209,7 @@ class GithubTrending(object):
                 formatted_repository = self.format_repository(index, repository)
                 click.echo(formatted_repository)
                 user_repository = repository['User'] + '/' + repository['Repository']
-                try:
-                    description = repository['Description']
-                except:
-                    description = ''
-                self.config.repositories[user_repository] = description
+                self.config.repositories[user_repository] = repository['Description']
             except:
                 self.print_repository_not_found()
         self.config.save_cache()
@@ -214,13 +222,9 @@ class GithubTrending(object):
             try:
                 formatted_developer = self.format_developer(index, developer)
                 click.echo(formatted_developer)
-                developer_repository = developer['Developer'].split(' (')[0]
-                developer_repository += '/' + developer['Repository']
-                try:
-                    description = developer['Description']
-                except:
-                    description = ''
-                self.config.repositories[developer_repository] = description
+                developer_repository = developer['Developer'].split(' (')[0] + \
+                                       '/' + developer['Repository']
+                self.config.repositories[developer_repository] = developer['Description']
             except:
                 self.print_developer_not_found()
         self.config.save_cache()
