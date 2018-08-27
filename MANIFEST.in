@@ -2,7 +2,7 @@
 include *.md
 
 # Include the license file
-# include LICENSE.txt
+include LICENSE.txt
 
 # Include the data files
 include github_trending/lib/mdv/ansi_tables.json
