@@ -6,11 +6,10 @@ except ImportError:
 
 
 setup(
-    description=('View and filter Hacker News from the command line: '
-                 'Posts, comments, and linked web content.'),
+    description=('View Github Trending and repository README from the command line'),
     author='Yuya Chiba',
     url='https://github.com/blue-9/github-trending',
-    download_url='https://pypi.python.org/pypi/haxor-news',
+    download_url='https://pypi.python.org/pypi/github-trending-cli',
     author_email='cy.blue.9@gmail.com',
     version=__version__,
     license='Apache License 2.0',
@@ -36,7 +35,7 @@ setup(
     },
     packages=find_packages(),
     scripts=[],
-    name='github-trending',
+    name='github-trending-cli',
     include_package_data=True,
     classifiers=[
         'Intended Audience :: Developers',
