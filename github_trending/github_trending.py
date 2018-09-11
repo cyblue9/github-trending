@@ -64,7 +64,7 @@ class GithubTrending(object):
         :type item_id: int
         :param item_id: The item's id.
         """
-        click.secho('Item with id {0} not found.'.format(item_id), fg='red')
+        click.secho('Item with id {0} not found.'.format(item_id), fg=self.config.clr_error)
 
     def get_east_asian_width_count(self, text):
         count = 0
@@ -142,19 +142,20 @@ class GithubTrending(object):
             else:
                 return ''
 
-        formatted_repository  = click.style('  {0}.'.format(str(index)), fg='magenta')
+        formatted_repository  = click.style('  {0}.'.format(str(index)), fg=self.config.clr_view_index)
         formatted_repository += ' ' * (3-len(str(index)))
-        formatted_repository += click.style(repository['User'] + '/', fg='cyan')
-        formatted_repository += click.style(repository['Repository'] + '\n      ', fg='cyan', bold=True)
-        formatted_repository += _format_description(repository['Description']) + '\n      '
+        formatted_repository += click.style(repository['User'] + '/', fg=self.config.clr_user)
+        formatted_repository += click.style(repository['Repository'] + '\n      ', fg=self.config.clr_rep_repository, bold=True)
+        description = _format_description(repository['Description'])
+        formatted_repository += click.style(description + '\n      ', fg=self.config.clr_description)
         programming_language  = _format_programming_language(repository['Programming Language'])
-        formatted_repository += click.style(programming_language, fg='red')
+        formatted_repository += click.style(programming_language, fg=self.config.clr_programming_language)
         total_stars           = _format_total_stars(repository['Total stars'])
-        formatted_repository += click.style(total_stars, fg='yellow')
+        formatted_repository += click.style(total_stars, fg=self.config.clr_total_stars)
         forks                 = _format_forks(repository['Forks'])
-        formatted_repository += click.style(forks, fg='green')
+        formatted_repository += click.style(forks, fg=self.config.clr_forks)
         formatted_repository += ' ' * _get_blank_num(repository)
-        formatted_repository += click.style(u'\U00002B50 ' + repository['Stars trending'] + '\n', fg='yellow')
+        formatted_repository += click.style(u'\U00002B50 ' + repository['Stars trending'] + '\n', fg=self.config.clr_total_stars)
         return formatted_repository
 
     def format_developer(self, index, developer):
@@ -180,21 +181,21 @@ class GithubTrending(object):
                 col -= self.get_east_asian_width_count(c)
             return formatted_description
 
-        formatted_developer  = click.style('  {0}.'.format(str(index)), fg='magenta')
+        formatted_developer  = click.style('  {0}.'.format(str(index)), fg=self.config.clr_view_index)
         formatted_developer += ' ' * (3-len(str(index)))
         owner, organization  = _get_owner_and_organization(developer['Developer'])
-        formatted_developer += click.style(owner + ' ', fg='cyan', bold=True)
-        formatted_developer += click.style(organization + '\n      ', fg='green', bold=True)
-        formatted_developer += click.style(u'\U0001F516  ' + developer['Repository'] + ' ', fg='yellow')
+        formatted_developer += click.style(owner + ' ', fg=self.config.clr_owner, bold=True)
+        formatted_developer += click.style(organization + '\n      ', fg=self.config.clr_organization, bold=True)
+        formatted_developer += click.style(u'\U0001F516  ' + developer['Repository'] + ' ', fg=self.config.clr_dev_repository)
         description          = _format_description(developer['Repository'], developer['Description'])
-        formatted_developer += click.style(description + '\n', fg='white')
+        formatted_developer += click.style(description + '\n', fg=self.config.clr_description)
         return formatted_developer
 
     def tip_view(self):
          """Create the tip about the view command."""
-         tip = click.style('  Tip: View the README for repository with the following command:\n', fg='white')
-         tip += click.style('    gt view [user/repository] ', fg='magenta')
-         tip += click.style('optional: [-b/--browser] [--help]\n')
+         tip = click.style('  Tip: View the README for repository with the following command:\n', fg=self.config.clr_general)
+         tip += click.style('    gt view [user/repository] ', fg=self.config.clr_view_index)
+         tip += click.style('optional: [-b/--browser] [--help]\n', fg=self.config.clr_tooltip)
          return tip
 
     def print_repository_not_found(self):
@@ -254,7 +255,7 @@ class GithubTrending(object):
 
         if browser:
             url = _create_url(language, dev, weekly, monthly)
-            click.secho('\nOpening ' + url + ' ...\n', fg='white')
+            click.secho('\nOpening ' + url + ' ...\n', fg=self.config.clr_general)
             webbrowser.open(url)
         else:
             result = self.github_trending_api.get_metadata(language, dev, weekly, monthly, limit)
@@ -267,18 +268,18 @@ class GithubTrending(object):
         """Display View repository README."""
         if browser:
             url = 'https://github.com/' + repository
-            click.secho('\nOpening ' + url + ' ...\n', fg='white')
+            click.secho('\nOpening ' + url + ' ...\n', fg=self.config.clr_general)
             webbrowser.open(url)
         else:
             for md in ['README.md', 'README.rst', 'README.txt', 'README']:
                 url = 'https://raw.githubusercontent.com/' + repository + '/master/' + md
                 res = requests.get(url, stream=True)
                 if res.status_code == 200:
-                    click.secho('\nOpening ' + url + ' ...\n', fg='white')
-                    header = click.style('Viewing ' + url + '\n', fg='white')
+                    click.secho('\nOpening ' + url + ' ...\n', fg=self.config.clr_general)
+                    header = click.style('Viewing ' + url + '\n', fg=self.config.clr_general)
                     content = mdv.main(md=res.text, L=True, l=True)
                     click.echo_via_pager(header + content)
                     return
-            click.secho('Error: ' + repository + ' is not found.', fg='red')
+            click.secho('Error: ' + repository + ' is not found.', fg=self.config.clr_error)
 
 
