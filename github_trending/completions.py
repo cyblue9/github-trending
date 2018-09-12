@@ -15,11 +15,11 @@
 # language governing permissions and limitations under the License.
 
 SUBCOMMANDS = {
-    'show': 'Show github trendings',
+    'trend': 'Trend repositories',
     'view': 'View repository README',
 }
 ARGS_OPTS_LOOKUP = {
-    'show': {
+    'trend': {
         'args': [],
         'opts': [
             '--language python',

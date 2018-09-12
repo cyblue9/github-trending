@@ -232,8 +232,8 @@ class GithubTrending(object):
         self.config.save_cache()
 
 
-    def show(self, language, dev, weekly, monthly, browser, limit):
-        """Display Show Github Trendings.
+    def trend(self, language, dev, weekly, monthly, browser, limit):
+        """Display Github Trendings.
 
         :type dev: bool
         :param dev: Determines whether to show Developers Trendings.

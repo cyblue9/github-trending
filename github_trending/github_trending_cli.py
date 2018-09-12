@@ -51,12 +51,12 @@ class GithubTrendingCli(object):
     @click.option('--browser', '-b', is_flag=True, help='View in a browser instead of the terminal')
     @click.option('--limit', '-li', default=25, help='Limits the number of items displayed')
     @pass_github_trending
-    def show(github_trending, language, dev, weekly, monthly, browser, limit):
-        """Display Show Github trendings.
+    def trend(github_trending, language, dev, weekly, monthly, browser, limit):
+        """Display Github trendings.
 
         Example(s):
-            gt show
-            gt show 5
+            gt trend
+            gt trend 5
 
         :type github_trending: :class:`github_treding.GithubTrending`
         :param github_trending: An instance of `github_trending.GithubTrending`.
@@ -72,7 +72,7 @@ class GithubTrendingCli(object):
             click.secho('Error: Please specify weekly OR monthly')
             return
 
-        github_trending.show(language, dev, weekly, monthly, browser, limit)
+        github_trending.trend(language, dev, weekly, monthly, browser, limit)
 
     @cli.command(help='View README of repository(ex:blue-9/github-trending)')
     @click.argument('repository')
