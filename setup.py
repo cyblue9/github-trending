@@ -4,9 +4,13 @@ try:
 except ImportError:
     from distutils.core import setup
 
+with open("README.md", "r") as fh:
+    long_description = fh.read()
 
 setup(
-    description=('View Github Trending and repository README from the command line'),
+    description='View Github Trending and repository README from the command line',
+    long_description=long_description,
+    long_description_content_type='text/markdown',
     author='Yuya Chiba',
     url='https://github.com/blue-9/github-trending',
     download_url='https://pypi.python.org/pypi/github-trending-cli',
